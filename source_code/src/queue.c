@@ -10,6 +10,10 @@ void enqueue(struct queue_t * q, struct pcb_t * proc) {
 	/* TODO: put a new process to queue [q] */	
 	if (q->size == MAX_QUEUE_SIZE) 
         return;
+	if ((empty(q)) || (q->proc[q->size-1]->priority < proc->priority)) {
+		q->proc[q->size++] = proc;
+		return;
+	}
     for (int i = 0; i < q->size; i++) {
         if (proc->priority <= q->proc[i]->priority) {
             q->size++;
