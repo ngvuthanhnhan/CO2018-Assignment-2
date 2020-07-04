@@ -116,6 +116,18 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	 * to know whether this page has been used by a process.
 	 * For virtual memory space, check bp (break pointer).
 	 * */
+	int num_pages_not_used = 0;
+    for (int i = 0; i < NUM_PAGES; i++) {
+        if (_mem_stat[i].proc == 0) {
+            num_pages_not_used++;
+        }
+    }
+    if (num_pages <= num_pages_not_used) {
+        mem_avail = 1;
+    }
+    if (proc->bp + num_pages*PAGE_SIZE < RAM_SIZE) {
+        mem_avail = 1;
+    }
 	
 	if (mem_avail) {
 		/* We could allocate new memory region to the process */
@@ -127,6 +139,43 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		 * 	- Add entries to segment table page tables of [proc]
 		 * 	  to ensure accesses to allocated memory slot is
 		 * 	  valid. */
+		int pre_index = -1;
+		addr_t tmp_ret_mem = ret_mem;
+		for (int i=0; i<NUM_PAGES; i++) {
+			if (_mem_stat[i] == 0) {
+				// Update [proc], [index], and [next] field
+				_mem_stat[i].proc = proc->pid;				
+				_mem_stat[i].index = i;
+				if (pre_index != -1) {
+					_mem_stat[pre_index].next = i;
+				}
+				pre_index = i;
+				//  Add entries to segment table page tables
+				/* Offset of the virtual address */
+				addr_t offset = get_offset(tmp_ret_mem);
+				/* The first layer index */
+				addr_t first_lv = get_first_lv(tmp_ret_mem);
+				/* The second layer index */
+				addr_t second_lv = get_second_lv(tmp_ret_mem);
+				tmp_ret_mem += PAGE_SIZE;
+				// find page_table and create new page_table if not found
+				struct page_table_t * page_table = get_page_table(first_lv, proc->seg_table);
+				if (page_table == NULL) {
+					int f_idx = proc->seg_table->size;
+					proc->seg_table->table[f_idx].v_index = first_lv;
+					page_table
+						= proc->seg_table->table[f_idx].pages
+						= (struct page_table_t*) malloc(sizeof(struct page_table_t));
+					proc->seg_table->size++;
+				}
+				// add v_index and p_index to page_table
+				int s_idx = page_table->size++;
+                page_table->table[s_idx].v_index = second_lv;
+                page_table->table[s_idx].p_index = i;
+			}
+		}
+		_mem_stat[pre_index].next = -1;
+
 	}
 	pthread_mutex_unlock(&mem_lock);
 	return ret_mem;
