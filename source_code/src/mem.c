@@ -90,6 +90,9 @@ static int translate(
 			 * to [p_index] field of page_table->table[i] to 
 			 * produce the correct physical address and save it to
 			 * [*physical_addr]  */
+			if (seg_table->table[i].v_index == index) {
+				return seg_table->table[i].pages;
+			}
 			return 1;
 		}
 	}
@@ -190,6 +193,39 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 	 * 	  the process [proc].
 	 * 	- Remember to use lock to protect the memory from other
 	 * 	  processes.  */
+	pthread_mutex_lock(&mem_lock);
+	addr_t pAddress = 0;
+	if(translate(address, &pAddress, proc) == 0) {
+		return 1;
+	}
+
+	int tmp = pAddress >> OFFSET_LEN;
+
+	int numOfPage = 0;
+	while(tmp != -1) {	//set RAM frames back to 0
+		_mem_stat[tmp].proc = 0;
+		numOfPage ++;
+		tmp = _mem_stat[tmp].next;
+	}
+
+	for(int i = 0; i < numOfPage; i++) {
+		addr_t currAddress = address + i * PAGE_SIZE;
+		addr_t currSegAddres = get_first_lv(currAddress);
+		addr_t currPageAddress = get_second_lv(currAddress);
+		struct page_table_t * currTable = get_page_table(currSegAddres, proc->seg_table);
+
+		if (!currTable) {
+			return 1;
+		}
+
+		for (int j = 1; j < currTable->size; j++) {
+			if (currTable->table[j].v_index == currPageAddress) {
+				currTable->table[j] = currTable -> table[--currTable->size];
+				break;
+			}
+		}
+	}
+	pthread_mutex_unlock(&mem_lock);
 	return 0;
 }
 
