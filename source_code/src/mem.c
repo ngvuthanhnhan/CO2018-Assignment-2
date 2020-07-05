@@ -105,8 +105,8 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 	 * byte in the allocated memory region to [ret_mem].
 	 * */
 
-	uint32_t num_pages = (size % PAGE_SIZE) ? size / PAGE_SIZE :
-		size / PAGE_SIZE + 1; // Number of pages we will use
+	uint32_t num_pages = (size % PAGE_SIZE) ? size / PAGE_SIZE + 1:
+		size / PAGE_SIZE; // Number of pages we will use
 	int mem_avail = 0; // We could allocate new memory region or not?
 
 	/* First we must check if the amount of free memory in
@@ -139,14 +139,15 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		 * 	- Update [proc], [index], and [next] field
 		 * 	- Add entries to segment table page tables of [proc]
 		 * 	  to ensure accesses to allocated memory slot is
-		 * 	  valid. */
+		 * 	  valid. */		
 		int pre_index = -1;
 		addr_t tmp_ret_mem = ret_mem;
+		int page_count = 0;
 		for (int i=0; i<NUM_PAGES; i++) {
 			if (_mem_stat[i].proc == 0) {
 				// Update [proc], [index], and [next] field
 				_mem_stat[i].proc = proc->pid;				
-				_mem_stat[i].index = i;
+				_mem_stat[i].index = page_count;
 				if (pre_index != -1) {
 					_mem_stat[pre_index].next = i;
 				}
@@ -173,6 +174,8 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 				int s_idx = page_table->size++;
                 page_table->table[s_idx].v_index = second_lv;
                 page_table->table[s_idx].p_index = i;
+				if (++page_count == num_pages)
+					break;
 			}
 		}
 		_mem_stat[pre_index].next = -1;
