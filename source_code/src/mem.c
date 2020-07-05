@@ -90,9 +90,7 @@ static int translate(
 			 * to [p_index] field of page_table->table[i] to 
 			 * produce the correct physical address and save it to
 			 * [*physical_addr]  */
-			if (seg_table->table[i].v_index == index) {
-				return seg_table->table[i].pages;
-			}
+			*physical_addr = (page_table->table[i].p_index << OFFSET_LEN) | offset;
 			return 1;
 		}
 	}
@@ -213,11 +211,19 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 		addr_t currSegAddres = get_first_lv(currAddress);
 		addr_t currPageAddress = get_second_lv(currAddress);
 		struct page_table_t * currTable = get_page_table(currSegAddres, proc->seg_table);
+<<<<<<< HEAD
 
 		if (!currTable) {
 			return 1;
 		}
 
+=======
+		
+		if (!currTable) {
+			return 1;
+		}
+		
+>>>>>>> bb49fcc... add free_mem()
 		for (int j = 1; j < currTable->size; j++) {
 			if (currTable->table[j].v_index == currPageAddress) {
 				currTable->table[j] = currTable -> table[--currTable->size];
