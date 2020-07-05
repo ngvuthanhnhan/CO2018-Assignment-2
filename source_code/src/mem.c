@@ -143,7 +143,7 @@ addr_t alloc_mem(uint32_t size, struct pcb_t * proc) {
 		int pre_index = -1;
 		addr_t tmp_ret_mem = ret_mem;
 		for (int i=0; i<NUM_PAGES; i++) {
-			if (_mem_stat[i] == 0) {
+			if (_mem_stat[i].proc == 0) {
 				// Update [proc], [index], and [next] field
 				_mem_stat[i].proc = proc->pid;				
 				_mem_stat[i].index = i;
@@ -211,19 +211,9 @@ int free_mem(addr_t address, struct pcb_t * proc) {
 		addr_t currSegAddres = get_first_lv(currAddress);
 		addr_t currPageAddress = get_second_lv(currAddress);
 		struct page_table_t * currTable = get_page_table(currSegAddres, proc->seg_table);
-<<<<<<< HEAD
-
 		if (!currTable) {
 			return 1;
 		}
-
-=======
-		
-		if (!currTable) {
-			return 1;
-		}
-		
->>>>>>> bb49fcc... add free_mem()
 		for (int j = 1; j < currTable->size; j++) {
 			if (currTable->table[j].v_index == currPageAddress) {
 				currTable->table[j] = currTable -> table[--currTable->size];
